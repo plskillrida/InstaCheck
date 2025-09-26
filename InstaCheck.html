@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InstaCheck Follower Analyzer</title>
+
+    <!-- UPDATED FAVICON (Browser Icon) using custom SVG to mimic the "iC with eye" logo -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231a1a1a'/%3E%3Ctext x='1' y='14' font-family='fantasy' font-weight='normal' font-size='14' fill='%23ffffff'%3Eic%3C/text%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='.5' stroke-linecap='round' stroke-linejoin='round' d='M4.5 3.5c1-1 3-1 4 0s2 2 0 2c-2 0-3-1.5-4-2z'/%3E%3Ccircle cx='8.5' cy='3.5' r='.5' fill='%231a1a1a'/%3E%3C/svg%3E" type="image/svg+xml">
+    
+
+    <!-- Load custom fonts (Dancing Script for title) -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Load Tailwind CSS from CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Keyframes for the pulsing/twinkling effect on chalk text */
+        @keyframes chalk-flicker {
+            0% { text-shadow: 0 0 4px rgba(255, 255, 255, 0.6); opacity: 1; }
+            50% { text-shadow: 0 0 1px rgba(255, 255, 255, 0.4); opacity: 0.85; }
+            100% { text-shadow: 0 0 4px rgba(255, 255, 255, 0.6); opacity: 1; }
+        }
+
+        /* Keyframes for shimmering border/glow */
+        @keyframes border-shimmer {
+            0% { box-shadow: 0 0 5px #93c5fd, inset 0 0 2px #93c5fd; }
+            50% { box-shadow: 0 0 10px #f87171, inset 0 0 4px #f87171; }
+            100% { box-shadow: 0 0 5px #93c5fd, inset 0 0 2px #93c5fd; }
+        }
+        
+        /* General styling for the dark/chalkboard feel */
+        body {
+            background-color: #1a1a1a; /* Dark charcoal/near-black */
+            /* Subtle background noise/texture */
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgtVmIAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAMklEQVQYlWP09fT8z8DAwMDABQICBswMDAwMiGIAABIDAwOD4b9///4hGAYAAKqYCQB194eS8vT7wAAAAABJRU5ErkJggg==');
+            font-family: 'Arial, "Helvetica Neue", Helvetica, sans-serif; /* Fallback for Arial Condensed */
+            font-stretch: condensed; /* Attempt to apply condensed style */
+            position: relative;
+            overflow: hidden; /* Contain twinkling effect */
+        }
+        
+        /* Global style for all 'chalk' writing: bright white with flickering glow */
+        .chalk-writing {
+            color: #ffffff !important; 
+            text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+            animation: chalk-flicker 2s infinite alternate ease-in-out;
+            /* Ensure all body text uses the new condensed Arial stack and removes the cursive font */
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; 
+        }
+
+        /* ONLY Enforce the cursive font for the main title */
+        .chalk-title {
+            font-family: 'Dancing Script', cursive;
+            letter-spacing: 2px;
+        }
+
+        /* Twinkling Star Dust Effect Container */
+        .twinkling-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            /* Using small repeating white/transparent dots for a twinkling appearance */
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.4) 1px, transparent 1px) 0 0,
+                radial-gradient(circle at 40% 70%, rgba(255, 255, 255, 0.4) 1px, transparent 1px) 10px 10px,
+                radial-gradient(circle at 70% 30%, rgba(255, 255, 255, 0.4) 1px, transparent 1px) 20px 20px,
+                radial-gradient(circle at 90% 50%, rgba(255, 255, 255, 0.4) 1px, transparent 1px) 30px 30px;
+            background-size: 40px 40px;
+            animation: move-twinkle 150s linear infinite;
+        }
+
+        @keyframes move-twinkle {
+            from { background-position: 0 0; }
+            to { background-position: 1500px 1500px; }
+        }
+
+        /* Styling for the drag-and-drop boxes - now with shimmering borders and chalkboard feel */
+        .file-upload-box {
+            border: 2px dashed #93c5fd; /* Light blue dashed border (chalk color) */
+            transition: all 0.2s ease-in-out;
+            background-color: #262626; /* Slightly lighter inner box */
+            animation: border-shimmer 4s infinite alternate ease-in-out;
+            color: #ffffff; /* Ensure inner text is white */
+        }
+        .file-upload-box.drag-over {
+            background-color: #3f3f46; /* Gray-600 on drag over */
+            border-color: #a7f3d0; /* Green-300 on drag over for feedback */
+            box-shadow: 0 0 15px #a7f3d0; /* Stronger green glow on drag over */
+            animation: none; /* Pause shimmer when dragging over */
+        }
+        .tab-active {
+            border-bottom: 2px solid #f87171; /* Red-400 for active tab underline */
+            color: #f87171 !important;
+            font-weight: 700;
+        }
+        /* Button style matching the dark theme, now with glow */
+        .chalk-button {
+            background-color: #f87171; /* Red-400 primary color */
+            box-shadow: 0 0 8px #f87171; /* Red glow */
+        }
+        .chalk-button:hover:not(:disabled) {
+            background-color: #ef4444; /* Red-500 hover */
+            box-shadow: 0 0 15px #ef4444; /* Stronger red glow on hover */
+        }
+        
+        /* Fix for Follow-Backs button background/text conflict, using dark background */
+        #follow-backs-btn {
+            background-color: #374151; /* Darker gray background */
+        }
+        #follow-backs-btn:hover:not(:disabled) {
+            background-color: #4b5563; /* Slightly lighter gray on hover */
+            box-shadow: 0 0 15px #f87171; /* Still give it a red glow */
+        }
+
+        /* Specific CSS to override the previous cursive font definition for body text */
+        .chalk-body-font {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+        }
+
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+    <!-- Twinkling Background Layer -->
+    <div class="twinkling-bg"></div>
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="chalk-title chalk-writing text-6xl font-extrabold text-center mt-6 mb-2">
+            InstaCheck
+        </h1>
+        <p class="text-center mb-6 text-lg chalk-writing chalk-body-font text-gray-400">
+            Upload your followers and following files.
+        </p>
+
+        <!-- New: Instructions Dropdown -->
+        <div class="mb-8 p-4 rounded-xl border border-gray-700 bg-gray-900">
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none py-1">
+                    <span class="text-base font-semibold text-red-400 chalk-writing chalk-body-font">
+                        Click here for instructions on how to download your files!
+                    </span>
+                    <span class="text-red-400 transform transition-transform duration-300 group-open:rotate-90">
+                        →
+                    </span>
+                </summary>
+                <div class="mt-4 text-sm space-y-3 border-t border-gray-700 pt-4 text-gray-300 chalk-writing chalk-body-font">
+                    <h3 class="font-bold text-base text-white">How to Get Your Data Files from Instagram:</h3>
+                    <ol class="list-decimal list-inside space-y-2 pl-2">
+                        <li>Go to your <b>Instagram Profile</b> (either on the app or web).</li>
+                        <li>Navigate to <b>Your Activity</b> > <b>Download Your Information</b> (or search for "Download Your Data").</li>
+                        <li>Enter the email where you want to receive the files.</li>
+                        <li>Select <b>JSON</b> as the format, and keep the quality settings as they are.</li>
+                        <li>After receiving the download link via email (it can take up to 48 hours):
+                            <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+                                <li>Download the zip file and extract the contents.</li>
+                                <li>Navigate to the <b>followers_and_following</b> folder.</li>
+                                <li>Inside, you will find `followers_1.json` and `following.json`.</li>
+                            </ul>
+                        </li>
+                        <li><b>Upload those two JSON files into the boxes below!</b></li>
+                    </ol>
+                    <p class="pt-2 text-red-300 font-medium">
+                        <b>Important:</b> Ensure you download the data in <b>JSON format</b> for this tool to work correctly.
+                    </p>
+                </div>
+            </details>
+        </div>
+        <!-- End New Instructions Dropdown -->
+
+
+        <!-- Main Application Area -->
+        <div id="app-container" class="bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl space-y-8 border border-gray-700">
+
+            <!-- File Upload Section -->
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <!-- Follower File Upload (Left Box) -->
+                <div id="followers-drop-area" class="file-upload-box p-6 rounded-lg text-center cursor-pointer">
+                    <input type="file" id="followers-file" accept=".json" class="hidden" onchange="handleFileUpload('followers', event)">
+                    <p id="followers-status" class="text-lg font-medium chalk-writing chalk-body-font">
+                        Drop Your Followers File
+                    </p>
+                    <p id="followers-filename" class="text-sm mt-2 truncate chalk-writing chalk-body-font">No file selected</p>
+                </div>
+
+                <!-- Following File Upload (Right Box) -->
+                <div id="following-drop-area" class="file-upload-box p-6 rounded-lg text-center cursor-pointer">
+                    <input type="file" id="following-file" accept=".json" class="hidden" onchange="handleFileUpload('following', event)">
+                    <p id="following-status" class="text-lg font-medium chalk-writing chalk-body-font">
+                        Drop Your Following File
+                    </p>
+                    <p id="following-filename" class="text-sm mt-2 truncate chalk-writing chalk-body-font">No file selected</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons and Status -->
+            <div class="space-y-4 pt-4">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <button
+                        id="non-followers-btn"
+                        onclick="analyzeNonFollowers()"
+                        class="chalk-button w-full chalk-writing chalk-body-font font-bold py-3 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Find Non-Followers (Unfollow Targets)
+                    </button>
+                    <button
+                        id="follow-backs-btn"
+                        onclick="analyzeFollowBacks()"
+                        class="chalk-button w-full chalk-writing chalk-body-font font-bold py-3 px-4 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Find Potential Follow-Backs
+                    </button>
+                </div>
+                <div id="message-box" class="min-h-10 text-center">
+                    <p class="text-sm chalk-writing chalk-body-font text-gray-400" id="instruction-message">
+                        Upload both files above to begin the analysis.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Results Tab Navigation -->
+            <div class="flex border-b border-gray-700 mt-8">
+                <button id="tab-nonfollowers" onclick="showResults('nonfollowers')" class="py-2 px-4 text-sm font-medium hover:text-white transition tab-active chalk-writing chalk-body-font">
+                    Non-Followers <span id="non-follower-count" class="text-red-400"></span>
+                </button>
+                <button id="tab-followbacks" onclick="showResults('followbacks')" class="py-2 px-4 text-sm font-medium hover:text-white transition chalk-writing chalk-body-font">
+                    Potential Follow-Backs <span id="follow-back-count" class="text-red-400"></span>
+                </button>
+            </div>
+
+            <!-- Results Content Area -->
+            <div id="results-content" class="pt-4">
+
+                <!-- Non-Followers Results -->
+                <div id="nonfollowers-results" class="results-panel">
+                    <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 h-96 overflow-y-auto" id="results-list-nonfollowers">
+                        <p class="text-gray-500 text-center py-10 chalk-writing chalk-body-font" id="nonfollowers-placeholder">
+                            Click 'Find Non-Followers' after uploading the files.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Potential Follow-Backs Results -->
+                <div id="followbacks-results" class="results-panel hidden">
+                    <div class="bg-gray-900 border border-gray-700 rounded-lg p-4 h-96 overflow-y-auto" id="results-list-followbacks">
+                        <p class="text-gray-500 text-center py-10 chalk-writing chalk-body-font" id="followbacks-placeholder">
+                            Click 'Find Potential Follow-Backs' after uploading the files.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Instagram Link Warning (Important for context) -->
+        <p class="text-xs text-gray-500 text-center mt-6 chalk-writing chalk-body-font">
+            Note: This tool is not affiliated with Instagram. The JSON files are processed entirely in your browser and are not uploaded anywhere.
+        </p>
+
+    </div>
+
+    <script>
+        // Store the raw file data
+        let followersData = null;
+        let followingData = null;
+        let followerSet = new Set();
+        let followingSet = new Set();
+
+        // Get references to DOM elements
+        const followersDropArea = document.getElementById('followers-drop-area');
+        const followingDropArea = document.getElementById('following-drop-area');
+        const followersFile = document.getElementById('followers-file');
+        const followingFile = document.getElementById('following-file');
+        const followersFilename = document.getElementById('followers-filename');
+        const followingFilename = document.getElementById('following-filename');
+        const nonFollowersBtn = document.getElementById('non-followers-btn');
+        const followBacksBtn = document.getElementById('follow-backs-btn');
+        const messageBox = document.getElementById('message-box');
+        
+        const tabNonFollowers = document.getElementById('tab-nonfollowers');
+        const tabFollowBacks = document.getElementById('tab-followbacks');
+        const nonFollowersResults = document.getElementById('nonfollowers-results');
+        const followBacksResults = document.getElementById('followbacks-results');
+
+        const resultsListNonFollowers = document.getElementById('results-list-nonfollowers');
+        const resultsListFollowBacks = document.getElementById('results-list-followbacks');
+        const nonFollowersPlaceholder = document.getElementById('nonfollowers-placeholder');
+        const followBacksPlaceholder = document.getElementById('followbacks-placeholder');
+        const nonFollowerCount = document.getElementById('non-follower-count');
+        const followBackCount = document.getElementById('follow-back-count');
+        
+        let currentTab = 'nonfollowers'; // State for active tab
+
+        // --- Utility Functions ---
+
+        /**
+         * Switches the active results tab.
+         * @param {string} tab - The tab to show ('nonfollowers' or 'followbacks').
+         */
+        function showResults(tab) {
+            currentTab = tab;
+            
+            // Manage button styling
+            tabNonFollowers.classList.remove('tab-active');
+            tabFollowBacks.classList.remove('tab-active');
+
+            // Manage panel visibility
+            nonFollowersResults.classList.add('hidden');
+            followBacksResults.classList.add('hidden');
+
+            if (tab === 'nonfollowers') {
+                tabNonFollowers.classList.add('tab-active');
+                nonFollowersResults.classList.remove('hidden');
+            } else {
+                tabFollowBacks.classList.add('tab-active');
+                followBacksResults.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Updates the UI state, enabling the buttons when both files are loaded.
+         */
+        function updateUI() {
+            const followersReady = followersData !== null;
+            const followingReady = followingData !== null;
+
+            // Update filenames text - using the chalkboard font for file status
+            followersFilename.textContent = followersReady ? 'File Loaded: followers_1.json' : 'No file selected';
+            followingFilename.textContent = followingReady ? 'File Loaded: following.json' : 'No file selected';
+
+            // Enable/disable the buttons
+            nonFollowersBtn.disabled = !(followersReady && followingReady);
+            followBacksBtn.disabled = !(followersReady && followingReady);
+
+            // Update drop area colors
+            followersDropArea.classList.toggle('bg-green-900', followersReady);
+            followersDropArea.classList.toggle('bg-red-900', !followersReady && followersData === false); // false means load failed
+            followingDropArea.classList.toggle('bg-green-990', followingReady);
+            followingDropArea.classList.toggle('bg-red-900', !followingReady && followingData === false);
+
+            // Update instructional message based on file status
+            const instructionMessage = document.getElementById('instruction-message');
+            if (followersReady && followingReady) {
+                 instructionMessage.innerHTML = '<span class="text-green-400 font-semibold chalk-writing chalk-body-font">Ready to Analyze!</span> Click one of the analysis buttons above.';
+            } else if (followersReady) {
+                instructionMessage.textContent = 'Waiting for following.json...';
+            } else if (followingReady) {
+                 instructionMessage.textContent = 'Waiting for followers_1.json...';
+            } else {
+                instructionMessage.textContent = 'Upload both files above to begin the analysis.';
+            }
+        }
+
+        /**
+         * Displays a message to the user.
+         * @param {string} text - The message content.
+         * @param {boolean} isError - If true, displays as an error message.
+         */
+        function showMessage(text, isError = false) {
+            // Apply chalk-writing and chalk-text-font classes to the message box content
+            messageBox.innerHTML = `<p class="font-semibold ${isError ? 'text-red-400' : 'text-gray-400'} chalk-writing chalk-body-font">${text}</p>`;
+        }
+
+        // --- File Handling Logic ---
+
+        /**
+         * Reads the content of the file and attempts to parse the JSON.
+         */
+        function parseFile(file, type) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    // Basic structural validation
+                    if (type === 'following' && (!data || !data.relationships_following)) {
+                        throw new Error(`The uploaded file does not contain the expected 'relationships_following' structure for following.json.`);
+                    }
+                    if (type === 'followers' && !Array.isArray(data)) {
+                        throw new Error(`The uploaded file does not contain the expected JSON Array structure for followers_1.json.`);
+                    }
+
+                    if (type === 'followers') {
+                        followersData = data;
+                        followersDropArea.classList.remove('bg-red-900');
+                    } else {
+                        followingData = data;
+                        followingDropArea.classList.remove('bg-red-900');
+                    }
+                    
+                    // Re-extract usernames into Sets every time data changes
+                    followerSet = extractUsernames(followersData, true);
+                    followingSet = extractUsernames(followingData, false);
+
+                    updateUI();
+                } catch (error) {
+                    console.error("File parsing error:", error);
+                    showMessage(`Error processing ${file.name}: ${error.message || 'The JSON file is corrupted or invalid.'}`, true);
+                    // Mark data as failed to load (using false) and show error state
+                    if (type === 'followers') {
+                         followersData = false;
+                         followersFilename.textContent = `Error: Invalid file format`;
+                         followersDropArea.classList.add('bg-red-900');
+                    } else {
+                         followingData = false;
+                         followingFilename.textContent = `Error: Invalid file format`;
+                         followingDropArea.classList.add('bg-red-900');
+                    }
+                    updateUI();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Handles file selection via the file dialog input.
+         */
+        function handleFileUpload(type, event) {
+            const file = event.target.files[0];
+            if (file) {
+                parseFile(file, type);
+            }
+        }
+
+        /**
+         * Sets up the event listeners for file dropping and clicking on the file area.
+         */
+        function setupDragAndDrop(element, expectedFileName, fileInput, type) {
+            element.addEventListener('click', () => fileInput.click());
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                element.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                element.addEventListener(eventName, () => element.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                element.addEventListener(eventName, () => element.classList.remove('drag-over'), false);
+            });
+
+            element.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    const droppedFile = files[0];
+                    const filename = droppedFile.name.toLowerCase();
+
+                    // Check for general file name match since Instagram's file names are consistent
+                    if (filename.includes(expectedFileName.split('_')[0]) || filename.includes(expectedFileName.split('.')[0])) {
+                        parseFile(droppedFile, type);
+                    } else {
+                        // Using span tags for styling inside the message
+                        showMessage(`Please drop the <span class="text-red-400 font-bold">'${expectedFileName}'</span> file into this box. You dropped ${droppedFile.name}.`, true);
+                    }
+                }
+            }
+        }
+
+        setupDragAndDrop(followersDropArea, 'followers_1.json', followersFile, 'followers');
+        setupDragAndDrop(followingDropArea, 'following.json', followingFile, 'following');
+
+        // --- Core Analysis Functions ---
+
+        function extractUsernames(data, isFollowers) {
+            const usernames = new Set();
+            if (!data) return usernames;
+            
+            try {
+                if (isFollowers && Array.isArray(data)) {
+                    data.forEach(item => {
+                        if (item.string_list_data && item.string_list_data.length > 0) {
+                            usernames.add(item.string_list_data[0].value);
+                        }
+                    });
+                } else if (!isFollowers && data.relationships_following) {
+                    data.relationships_following.forEach(item => {
+                        if (item.string_list_data && item.string_list_data.length > 0) {
+                            usernames.add(item.string_list_data[0].value);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error(`Error extracting usernames from ${isFollowers ? 'followers' : 'following'} data:`, e);
+                // Non-fatal error here, just return current state
+            }
+            return usernames;
+        }
+
+        /**
+         * Finds users you follow who aren't following you back.
+         */
+        function analyzeNonFollowers() {
+            if (!followersData || !followingData) {
+                showMessage("Please upload both files first.", true);
+                return;
+            }
+            showResults('nonfollowers'); // Switch to non-followers tab
+            showMessage("Analyzing non-followers...", false);
+            
+            try {
+                // Users I follow (followingSet) MINUS Users who follow me (followerSet)
+                const nonFollowers = Array.from(followingSet).filter(user => !followerSet.has(user));
+                nonFollowers.sort((a, b) => a.localeCompare(b));
+
+                displayResults(nonFollowers, resultsListNonFollowers, nonFollowersPlaceholder, nonFollowerCount, "Find Non-Followers", true);
+                showMessage(`Non-Follower analysis complete! Found ${nonFollowers.length} users.`, false);
+            } catch (error) {
+                console.error(error);
+                showMessage(error.message, true);
+            }
+        }
+        
+        /**
+         * Finds users who follow you but you do not follow back.
+         */
+        function analyzeFollowBacks() {
+            if (!followersData || !followingData) {
+                showMessage("Please upload both files first.", true);
+                return;
+            }
+            showResults('followbacks'); // Switch to follow-backs tab
+            showMessage("Analyzing potential follow-backs...", false);
+
+            try {
+                // Users who follow me (followerSet) MINUS Users I follow (followingSet)
+                const followBacks = Array.from(followerSet).filter(user => !followingSet.has(user));
+                followBacks.sort((a, b) => a.localeCompare(b));
+                
+                displayResults(followBacks, resultsListFollowBacks, followBacksPlaceholder, followBackCount, "Find Potential Follow-Backs", false);
+                showMessage(`Potential Follow-Back analysis complete! Found ${followBacks.length} users.`, false);
+            } catch (error) {
+                console.error(error);
+                showMessage(error.message, true);
+            }
+        }
+
+        /**
+         * Utility function to render the results list.
+         */
+        function displayResults(users, listElement, placeholderElement, countElement, buttonText, isNonFollowerList) {
+            listElement.innerHTML = ''; // Clear previous results
+            
+            countElement.textContent = `(${users.length})`;
+
+            if (users.length === 0) {
+                const message = isNonFollowerList 
+                    ? `🎉 Good news! Everyone you follow is following you back. 🎉`
+                    : `🙌 You are following everyone who follows you back. 🙌`;
+                // Apply chalk-writing and chalk-body-font to messages as well
+                listElement.innerHTML = `<p class="text-green-400 text-center py-10 font-bold text-xl chalk-writing chalk-body-font">${message}</p>`;
+            } else {
+                placeholderElement.classList.add('hidden');
+                const ul = document.createElement('ul');
+                // Apply chalk-writing to list text
+                ul.className = 'divide-y divide-gray-700 chalk-writing';
+
+                users.forEach(username => {
+                    const li = document.createElement('li');
+                    li.className = 'py-2 px-3 hover:bg-gray-700 rounded-md transition duration-150 flex justify-between items-center';
+
+                    const usernameSpan = document.createElement('span');
+                    usernameSpan.textContent = `@${username}`;
+                    
+                    const actionButton = document.createElement('a');
+                    actionButton.href = `https://www.instagram.com/${username}`;
+                    actionButton.target = "_blank";
+                    actionButton.textContent = isNonFollowerList ? 'Unfollow / View →' : 'Follow Back / View →';
+                    // Apply chalkboard style to the button text for consistency
+                    actionButton.className = 'text-red-400 text-sm hover:text-red-300 font-medium ml-4 chalk-writing chalk-body-font';
+
+                    li.appendChild(usernameSpan);
+                    li.appendChild(actionButton);
+                    ul.appendChild(li);
+                });
+                listElement.appendChild(ul);
+            }
+        }
+        
+        // Alias the main function calls for the buttons
+        const analyzeFiles = () => {
+            // Default action: run non-follower analysis when the main button is clicked
+            analyzeNonFollowers();
+        };
+
+        // Initialize UI on load
+        updateUI();
+        showResults('nonfollowers'); // Ensure the default tab is visible
+    </script>
+</body>
+</html>
